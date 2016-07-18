@@ -1,0 +1,38 @@
+{
+  "name": "perceptron-visualizer",
+  "version": "0.2.0",
+  "description": "Visualizer for Perceptron",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "perceptron",
+    "visualizer",
+    "d3",
+    "artificial",
+    "intelligence"
+  ],
+  "author": "Matt Mazzola",
+  "license": "MIT",
+  "dependencies": {
+    "@mattmazzola/perceptron": "^0.2.0",
+    "d3": "^4.1.0",
+    "d3-array": "^1.0.0",
+    "d3-axis": "^1.0.0"
+  },
+  "devDependencies": {
+    "d3-drag": "^1.0.0",
+    "d3-scale": "^1.0.1",
+    "d3-selection": "^1.0.0",
+    "gulp": "^3.9.1",
+    "gulp-help": "^1.6.1",
+    "gulp-html-replace": "^1.6.1",
+    "gulp-load-plugins": "^1.2.4",
+    "gulp-plumber": "^1.1.0",
+    "rollup": "^0.34.0",
+    "rollup-plugin-node-resolve": "^1.7.1",
+    "rollup-plugin-typescript": "^0.7.6",
+    "run-sequence": "^1.2.2"
+  }
+}
