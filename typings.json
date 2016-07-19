@@ -2,6 +2,7 @@
   "name": "perceptron-visualizer",
   "dependencies": {},
   "globalDependencies": {
-    "d3": "registry:dt/d3#0.0.0+20160628065019"
+    "d3": "registry:dt/d3#0.0.0+20160628065019",
+    "jquery": "registry:dt/jquery#1.10.0+20160704162008"
   }
 }
