@@ -437,17 +437,17 @@ export class Chart {
 
 const vis = new Chart('.visual-container', [-50,50], []);
 
-select('#reset')
+$('#reset')
   .on('click', () => {
     vis.reset();
   });
 
-select("#mode")
+$("#mode")
   .on('click', () => {
     vis.toggleMode();
   });
 
-select("#train")
+$("#train")
   .on('click', () => {
     const slope = (Math.round(10 * Math.random()) - 5)/2;
     const offset = Math.round(40 * Math.random()) - 20;
@@ -455,10 +455,11 @@ select("#train")
   });
 
 const element = document.querySelector('.visual-container');
+const $element = $('.visual-container');
 
-element
-  .addEventListener('pointAdded', (event: CustomEvent) => {
-    console.log('pointAdded', event.detail);
+$element
+  .on('pointAdded', (event: JQueryEventObject) => {
+    console.log('pointAdded', (<CustomEvent>(<any>event)).detail);
   });
 
 element
