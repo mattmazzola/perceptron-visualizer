@@ -142,7 +142,6 @@ export class Chart {
     this.svg
       .selectAll('line')
       .remove('line')
-
   }
 
   toggleMode() {
@@ -205,7 +204,7 @@ export class Chart {
 
       run = (dragMovePoint.x - this.dragStartPoint.x);
       rise = (dragMovePoint.y - this.dragStartPoint.y);
-      
+
       if(run === 0) {
         slope = Infinity;
         offset = 0;
@@ -232,7 +231,7 @@ export class Chart {
       }
 
       const selection = this.svg
-        .selectAll('line')
+        .selectAll('line.division')
         .data([
           {
             id: -this.dragStartPoint.id,
@@ -312,10 +311,62 @@ export class Chart {
         .remove('circle');
   }
 
-  private updateTrainingLine(slope: number, offset: number) {
+  public updateTrainingLine(slope: number, offset: number) {
+    const minScaledX = this.xScale.invert(0);
+    const maxScaledX = this.xScale.invert(400);
+    let minX: number = this.xScale(minScaledX);
+    let minY: number;
+    let maxX: number = this.xScale(maxScaledX);
+    let maxY: number;
+
+    if(slope === Infinity) {
+      minY = 0;
+      minX = 0,
+      maxY = 400;
+      maxX = 400;
+    }
+    else {
+      minY = this.yScale(slope * minScaledX + offset);
+      maxY = this.yScale(slope * maxScaledX + offset);
+    }
+
     const selection = this.svg
       .selectAll('line.train')
-      .data()
+      .data([
+        {
+          id: 123,
+          x1: minX,
+          y1: minY,
+          x2: maxX,
+          y2: maxY,
+          stroke: 'green',
+          strokeWidth: 2
+        }
+      ], (d: any) => d.id);
+
+      selection
+        .enter()
+          .append('line')
+          .attr('x1', (d: ILine) => d.x1)
+          .attr('y1', (d: ILine) => d.y1)
+          .attr('x2', (d: ILine) => d.x2)
+          .attr('y2', (d: ILine) => d.y2)
+          .attr('stroke', (d: ILine) => d.stroke)
+          .attr('stroke-width', (d: ILine) => d.strokeWidth)
+          .classed('train', true)
+        ;
+
+      selection
+        .attr('x1', (d: ILine) => d.x1)
+        .attr('y1', (d: ILine) => d.y1)
+        .attr('x2', (d: ILine) => d.x2)
+        .attr('y2', (d: ILine) => d.y2)
+        ;
+
+      selection
+        .exit()
+          .remove('line')
+          ;
   }
 }
 
@@ -327,7 +378,14 @@ select('#reset')
     vis.reset();
   });
 
-select("button.mode")
+select("#mode")
   .on('click', () => {
     vis.toggleMode();
+  });
+
+select("#train")
+  .on('click', () => {
+    const slope = (Math.round(10 * Math.random()) - 5)/2;
+    const offset = Math.round(40 * Math.random()) - 20;
+    vis.updateTrainingLine(slope, offset);
   });
