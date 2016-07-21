@@ -12,6 +12,13 @@ body {
   width: 400px;
 }
 
+.grid path {
+  stroke: transparent;
+}
+.grid .tick line {
+  stroke: rgba(0,0,0,0.2);
+}
+
 .noselect {
   -webkit-touch-callout: none; /* iOS Safari */
   -webkit-user-select: none;   /* Chrome/Safari/Opera */

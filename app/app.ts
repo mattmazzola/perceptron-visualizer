@@ -96,7 +96,13 @@ export class Chart {
 
     // Create axises
     const xAxis = axisBottom(this.xScale);
+    const xAxisGrid = axisBottom(this.xScale)
+      .tickSize([this.width])
+      ;
     const yAxis = axisLeft(this.yScale);
+    const yAxisGrid = axisLeft(this.yScale)
+      .tickSize([this.width])
+      ;
 
     // Draw Axises
     const xAxisGroup = this.svg
@@ -107,6 +113,14 @@ export class Chart {
       .classed('noselect', true)
       .call(xAxis);
 
+    const xAxisGridGroup = this.svg
+      .append('g')
+      .attr('transform', `translate(0, 0)`)
+      .classed('grid', true)
+      .classed('grid--x', true)
+      .classed('noselect', true)
+      .call(xAxisGrid);
+
     const yAxisGroup = this.svg
       .append('g')
       .attr('transform', `translate(${this.width/2}, 0)`)
@@ -114,6 +128,14 @@ export class Chart {
       .classed('axis--y', true)
       .classed('noselect', true)
       .call(yAxis);
+    
+    const yAxisGridGroup = this.svg
+      .append('g')
+      .attr('transform', `translate(${this.width}, 0)`)
+      .classed('grid', true)
+      .classed('grid--y', true)
+      .classed('noselect', true)
+      .call(yAxisGrid);
 
     // Register Events
     this.svg.on('click', (() => {
