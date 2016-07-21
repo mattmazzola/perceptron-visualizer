@@ -161,7 +161,11 @@ export class Chart {
     this.update();
 
     this.svg
-      .selectAll('line')
+      .selectAll('line.train')
+      .remove('line');
+
+    this.svg
+      .selectAll('line.division')
       .remove('line')
   }
 
