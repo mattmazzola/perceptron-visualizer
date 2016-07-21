@@ -321,16 +321,24 @@ export class Chart {
       this.dragEndPoint.y = y;
       this.dragEndPoint.scaledY = Math.round(this.yScale.invert(y));
 
-      const customEvent = new CustomEvent("idealLineUpdated", {
-        detail: {
-          x1: this.dragStartPoint.x,
-          y1: this.dragStartPoint.y,
-          x2: this.dragEndPoint.x,
-          y2: this.dragEndPoint.y
-        }
-      });
+      const differentStartPoint = (this.dragStartPoint.x != this.dragEndPoint.x)
+        || (this.dragEndPoint.x != this.dragEndPoint.x)
+        || (this.dragStartPoint.y != this.dragStartPoint.y)
+        || (this.dragEndPoint.y != this.dragEndPoint.y)
+        ;
 
-      this.containgElement.node().dispatchEvent(customEvent);
+      if (differentStartPoint) {
+        const customEvent = new CustomEvent("idealLineUpdated", {
+          detail: {
+            x1: this.dragStartPoint.x,
+            y1: this.dragStartPoint.y,
+            x2: this.dragEndPoint.x,
+            y2: this.dragEndPoint.y
+          }
+        });
+
+        this.containgElement.node().dispatchEvent(customEvent);
+      }
     }
   }
 
