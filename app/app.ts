@@ -142,7 +142,6 @@ export class Chart {
       const that = this;
       return function () {
         const [x,y] = mouse(this);
-        console.log('new svg clicked');
         if (that.mode) {
           that.addPoint(x,y);
         }
@@ -193,6 +192,15 @@ export class Chart {
 
     this.circles.push(newCircle);
     this.update();
+
+    const customEvent = new CustomEvent("pointAdded", {
+      detail: {
+        x: newCircle.x,
+        y: newCircle.y
+      }
+    });
+
+    this.containgElement.node().dispatchEvent(customEvent);
   }
 
   private dragStarted() {
@@ -308,6 +316,17 @@ export class Chart {
       this.dragEndPoint.scaledX = Math.round(this.xScale.invert(x));
       this.dragEndPoint.y = y;
       this.dragEndPoint.scaledY = Math.round(this.yScale.invert(y));
+
+      const customEvent = new CustomEvent("idealLineUpdated", {
+        detail: {
+          x1: this.dragStartPoint.x,
+          y1: this.dragStartPoint.y,
+          x2: this.dragEndPoint.x,
+          y2: this.dragEndPoint.y
+        }
+      });
+
+      this.containgElement.node().dispatchEvent(customEvent);
     }
   }
 
@@ -389,6 +408,17 @@ export class Chart {
         .exit()
           .remove('line')
           ;
+
+      const customEvent = new CustomEvent("trainingLineUpdated", {
+        detail: {
+          x1: minX,
+          y1: minY,
+          x2: maxX,
+          y2: maxY
+        }
+      });
+
+      this.containgElement.node().dispatchEvent(customEvent);
   }
 }
 
@@ -410,4 +440,21 @@ select("#train")
     const slope = (Math.round(10 * Math.random()) - 5)/2;
     const offset = Math.round(40 * Math.random()) - 20;
     vis.updateTrainingLine(slope, offset);
+  });
+
+const element = document.querySelector('.visual-container');
+
+element
+  .addEventListener('pointAdded', (event: CustomEvent) => {
+    console.log('pointAdded', event.detail);
+  });
+
+element
+  .addEventListener('idealLineUpdated', (event: CustomEvent) => {
+    console.log('idealLineUpdated', event.detail);
+  });
+
+element
+  .addEventListener('trainingLineUpdated', (event: CustomEvent) => {
+    console.log('trainingLineUpdated', event.detail);
   });
