@@ -1,16 +1,14 @@
 {
     "compilerOptions": {
-        "moduleResolution": "node",
-        "module": "umd",
         "target": "es5",
-        "declaration": true,
         "noImplicitAny": true,
-        "sourceMap": true,
-        "outDir": "dist"
+        "sourceMap": true
     },
     "exclude": [
         "node_modules",
         "typings/index.d.ts",
-        "dist"
+        "dist",
+        "test",
+        "tmp"
     ]
 }

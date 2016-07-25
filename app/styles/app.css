@@ -28,3 +28,27 @@ body {
   user-select: none;           /* Non-prefixed version, currently
                                   not supported by any browser */
 }
+
+.circle {
+  fill: blue;
+}
+.circle--positive {
+  fill: green;
+}
+.circle--negative {
+  fill: red;
+}
+
+line.train {
+  stroke: purple;
+}
+
+line.division {
+  stroke: purple;
+}
+line.division--full {
+  stroke: orange;
+}
+line.division--user-defined {
+  stroke: red;
+}
