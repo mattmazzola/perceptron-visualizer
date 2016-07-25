@@ -31,13 +31,14 @@ export interface ILine {
   y2: number;
   stroke: string;
   strokeWidth: number;
+  userDefined: boolean;
 }
 
 export interface ICircle {
   x: number;
   y: number;
   r: number;
-  color: string;
+  result: boolean;
 }
 
 export class Chart {
@@ -73,6 +74,7 @@ export class Chart {
     scaledX: 0,
     scaledY: 0
   };
+  
   dragEndPoint: any = {
     x: 0,
     y: 0,
@@ -203,7 +205,7 @@ export class Chart {
       x: scaledCoordinates.x,
       y: scaledCoordinates.y,
       r: 5,
-      color: 'blue'
+      result: null
     };
 
     this.circles.push(newCircle);
@@ -285,8 +287,8 @@ export class Chart {
             y1: minY,
             x2: maxX,
             y2: maxY,
-            stroke: 'orange',
-            strokeWidth: 2
+            strokeWidth: 2,
+            userDefined: false
           },
           {
             id: this.dragStartPoint.id,
@@ -294,8 +296,8 @@ export class Chart {
             y1: this.dragStartPoint.y,
             x2: dragMovePoint.x,
             y2: dragMovePoint.y,
-            stroke: 'red',
-            strokeWidth: 3
+            strokeWidth: 3,
+            userDefined: true
           },
         ], (d: any) => d.id);
 
@@ -306,9 +308,10 @@ export class Chart {
           .attr('y1', (d: ILine) => d.y1)
           .attr('x2', (d: ILine) => d.x2)
           .attr('y2', (d: ILine) => d.y2)
-          .attr('stroke', (d: ILine) => d.stroke)
           .attr('stroke-width', (d: ILine) => d.strokeWidth)
           .classed('division', true)
+          .classed('division--full', (d: ILine) => d.userDefined === false)
+          .classed('division--user-defined', (d: ILine) => d.userDefined === true)
         ;
 
       selection
@@ -352,6 +355,21 @@ export class Chart {
         this.idealLineEndPoint.y = this.dragEndPoint.y;
         this.idealLineEndPoint.scaledY = this.dragEndPoint.scaledY;
 
+        console.log('colorize');
+
+        const positivePoints = this.circles
+          .map((d: ICircle) => {
+            d.result = this.crossProduct(d);
+            return d;
+          });
+
+        const selection = this.svg
+          .selectAll('circle')
+          .data(this.circles)
+          .classed('circle--positive', (d: ICircle) => d.result === true)
+          .classed('circle--negative', (d: ICircle) => d.result === false)
+          ;
+          
         const customEvent = new CustomEvent("idealLineUpdated", {
           detail: {
             x1: this.idealLineStartPoint.x,
@@ -366,6 +384,25 @@ export class Chart {
     }
   }
 
+  private crossProduct(d: ICircle) {
+    const a = {
+      x: this.idealLineStartPoint.scaledX,
+      y: this.idealLineStartPoint.scaledY
+    };
+    const b = {
+      x: this.idealLineEndPoint.scaledX,
+      y: this.idealLineEndPoint.scaledY
+    };
+    const p = {
+      x: d.x,
+      y: d.y
+    };
+
+    const crossProduct = ((b.x - a.x) * (p.y - a.y)) - ((b.y - a.y) * (p.x - a.x));
+
+    return (crossProduct > 0);
+  }
+
   private update() {
     const selection = this.svg
       .selectAll('circle')
@@ -377,7 +414,9 @@ export class Chart {
         .attr("cx", (d: ICircle) => this.xScale(d.x))
         .attr("cy", (d: ICircle) => this.yScale(d.y))
         .attr("r", (d: ICircle) => d.r)
-        .style("fill", (d: ICircle) => d.color);
+        .classed('circle', true)
+        ;
+
 
     selection
       .attr("cx", (d: ICircle) => this.xScale(d.x))
@@ -416,7 +455,6 @@ export class Chart {
           y1: minY,
           x2: maxX,
           y2: maxY,
-          stroke: 'green',
           strokeWidth: 2
         }
       ], (d: any) => d.id);
@@ -428,7 +466,6 @@ export class Chart {
           .attr('y1', (d: ILine) => d.y1)
           .attr('x2', (d: ILine) => d.x2)
           .attr('y2', (d: ILine) => d.y2)
-          .attr('stroke', (d: ILine) => d.stroke)
           .attr('stroke-width', (d: ILine) => d.strokeWidth)
           .classed('train', true)
         ;
