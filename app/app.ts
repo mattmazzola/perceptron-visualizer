@@ -54,6 +54,18 @@ export class Chart {
 
   circles: ICircle[] = [];
   containgElement: any;
+  idealLineStartPoint: any = {
+    x: 0,
+    y: 0,
+    scaledX: 0,
+    scaledY: 0
+  };
+  idealLineEndPoint: any = {
+    x: 0,
+    y: 0,
+    scaledX: 0,
+    scaledY: 0
+  };
   dragStartPoint: any = {
     id: 100,
     x: 0,
@@ -328,15 +340,27 @@ export class Chart {
         ;
 
       if (differentStartPoint) {
+        // Start
+        this.idealLineStartPoint.x = this.dragStartPoint.x;
+        this.idealLineStartPoint.scaledX = this.dragStartPoint.scaledX;
+        this.idealLineStartPoint.y = this.dragStartPoint.y;
+        this.idealLineStartPoint.scaledY = this.dragStartPoint.scaledY;
+
+        // End
+        this.idealLineEndPoint.x = this.dragEndPoint.x;
+        this.idealLineEndPoint.scaledX = this.dragEndPoint.scaledX;
+        this.idealLineEndPoint.y = this.dragEndPoint.y;
+        this.idealLineEndPoint.scaledY = this.dragEndPoint.scaledY;
+
         const customEvent = new CustomEvent("idealLineUpdated", {
           detail: {
-            x1: this.dragStartPoint.x,
-            y1: this.dragStartPoint.y,
-            x2: this.dragEndPoint.x,
-            y2: this.dragEndPoint.y
+            x1: this.idealLineStartPoint.x,
+            y1: this.idealLineStartPoint.y,
+            x2: this.idealLineEndPoint.x,
+            y2: this.idealLineEndPoint.y,
+            points: positivePoints
           }
         });
-
         this.containgElement.node().dispatchEvent(customEvent);
       }
     }
