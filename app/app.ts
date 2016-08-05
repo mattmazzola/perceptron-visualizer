@@ -1,4 +1,3 @@
-
 import {
   selectAll,
   select,
@@ -23,17 +22,23 @@ import {
   drag
 } from "d3-drag";
 
+export interface IPoint {
+  x: number;
+  y: number;
+}
+
+export interface IScaledPoint {
+  normal: IPoint;
+  scaled: IPoint;
+}
+
 export interface ILine {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
+  start: IScaledPoint;
+  end: IScaledPoint;
   userDefined: boolean;
 }
 
-export interface ICircle {
-  x: number;
-  y: number;
+export interface ICircle extends IPoint {
   r: number;
   result: boolean;
 }
@@ -62,31 +67,49 @@ export default class Chart {
     trainingLines: []
   };
   containgElement: any;
-  idealLineStartPoint: any = {
-    x: 0,
-    y: 0,
-    scaledX: 0,
-    scaledY: 0
+  idealLineStartPoint: IScaledPoint = {
+    normal: {
+      x: 0,
+      y: 0
+    },
+    scaled: {
+      x: 0,
+      y: 0
+    }
   };
-  idealLineEndPoint: any = {
-    x: 0,
-    y: 0,
-    scaledX: 0,
-    scaledY: 0
+  idealLineEndPoint: IScaledPoint = {
+    normal: {
+      x: 0,
+      y: 0
+    },
+    scaled: {
+      x: 0,
+      y: 0
+    }
   };
-  dragStartPoint: any = {
-    id: 100,
-    x: 0,
-    y: 0,
-    scaledX: 0,
-    scaledY: 0
+  dragMoveData: any = {
+    slope: undefined,
+    offset: undefined
   };
-  
-  dragEndPoint: any = {
-    x: 0,
-    y: 0,
-    scaledX: 0,
-    scaledY: 0
+  dragStartPoint: IScaledPoint = {
+    normal: {
+      x: 0,
+      y: 0
+    },
+    scaled: {
+      x: 0,
+      y: 0
+    }
+  };
+  dragEndPoint: IScaledPoint = {
+    normal: {
+      x: 0,
+      y: 0
+    },
+    scaled: {
+      x: 0,
+      y: 0
+    }
   };
   dragBehavior: any;
   trainingLine: any = {
@@ -205,7 +228,7 @@ export default class Chart {
   }
 
   private addPoint(x: number, y: number) {
-    const scaledCoordinates = {
+    const scaledCoordinates: IPoint = {
       x: Math.round(this.xScale.invert(x)),
       y: Math.round(this.yScale.invert(y))
     };
@@ -233,21 +256,25 @@ export default class Chart {
   private dragStarted() {
     if (!this.mode) {
       const [x,y] = [event.x, event.y];
-      this.dragStartPoint.x = x;
-      this.dragStartPoint.scaledX = Math.round(this.xScale.invert(x));
-      this.dragStartPoint.y = y;
-      this.dragStartPoint.scaledY = Math.round(this.yScale.invert(y));
+      this.dragStartPoint.normal.x = x;
+      this.dragStartPoint.normal.y = y;
+      this.dragStartPoint.scaled.x = Math.round(this.xScale.invert(x));
+      this.dragStartPoint.scaled.y = Math.round(this.yScale.invert(y));
     }
   }
 
   private dragMove() {
     if (!this.mode) {
       const [x,y] = [event.x, event.y];
-      const dragMovePoint = {
-        x,
-        y,
-        scaledX: Math.round(this.xScale.invert(x)),
-        scaledY: Math.round(this.yScale.invert(y))
+      const dragMovePoint: IScaledPoint = {
+        normal: {
+          x,
+          y
+        },
+        scaled: {
+          x: Math.round(this.xScale.invert(x)),
+          y: Math.round(this.yScale.invert(y))
+        }
       };
 
       let run: number;
@@ -259,20 +286,20 @@ export default class Chart {
       let maxX: number = 400;
       let maxY: number;
 
-      run = (dragMovePoint.x - this.dragStartPoint.x);
-      rise = (dragMovePoint.y - this.dragStartPoint.y);
+      run = (dragMovePoint.normal.x - this.dragStartPoint.normal.x);
+      rise = (dragMovePoint.normal.y - this.dragStartPoint.normal.y);
 
       if(run === 0) {
         slope = Infinity;
         offset = 0;
         minY = 0;
-        minX = dragMovePoint.x,
+        minX = dragMovePoint.normal.x,
         maxY = 400;
-        maxX = dragMovePoint.x
+        maxX = dragMovePoint.normal.x
       }
       else {
         slope = rise/run;
-        offset = dragMovePoint.y - slope * dragMovePoint.x;
+        offset = dragMovePoint.normal.y - slope * dragMovePoint.normal.x;
 
         minY = slope * (0) + offset;
         maxY = slope * 400 + offset;
@@ -287,44 +314,57 @@ export default class Chart {
         }
       }
 
+      this.dragMoveData.slope = -slope;
+      this.dragMoveData.offset = dragMovePoint.scaled.y + slope * dragMovePoint.scaled.x;
+      console.log(this.dragMoveData);
+
+      const extendedLine: ILine = {
+        start: {
+          normal: {
+            x: minX,
+            y: minY
+          },
+          scaled: null
+        },
+        end: {
+          normal: {
+            x: maxX,
+            y: maxY
+          },
+          scaled: null
+        },
+        userDefined: false
+      };
+      const userDefinedLine: ILine = {
+        start: this.dragStartPoint,
+        end: dragMovePoint,
+        userDefined: true
+      };
+
       const selection = this.svg
         .selectAll('line.division')
         .data([
-          {
-            id: -this.dragStartPoint.id,
-            x1: minX,
-            y1: minY,
-            x2: maxX,
-            y2: maxY,
-            userDefined: false
-          },
-          {
-            id: this.dragStartPoint.id,
-            x1: this.dragStartPoint.x,
-            y1: this.dragStartPoint.y,
-            x2: dragMovePoint.x,
-            y2: dragMovePoint.y,
-            userDefined: true
-          },
-        ], (d: any) => d.id);
+          extendedLine,
+          userDefinedLine,
+        ]);
 
       selection
         .enter()
           .append('line')
-          .attr('x1', (d: ILine) => d.x1)
-          .attr('y1', (d: ILine) => d.y1)
-          .attr('x2', (d: ILine) => d.x2)
-          .attr('y2', (d: ILine) => d.y2)
+          .attr('x1', (d: ILine) => d.start.normal.x)
+          .attr('y1', (d: ILine) => d.start.normal.y)
+          .attr('x2', (d: ILine) => d.end.normal.x)
+          .attr('y2', (d: ILine) => d.end.normal.y)
           .classed('division', true)
           .classed('division--full', (d: ILine) => d.userDefined === false)
           .classed('division--user-defined', (d: ILine) => d.userDefined === true)
         ;
 
       selection
-        .attr('x1', (d: ILine) => d.x1)
-        .attr('y1', (d: ILine) => d.y1)
-        .attr('x2', (d: ILine) => d.x2)
-        .attr('y2', (d: ILine) => d.y2)
+        .attr('x1', (d: ILine) => d.start.normal.x)
+        .attr('y1', (d: ILine) => d.start.normal.y)
+        .attr('x2', (d: ILine) => d.end.normal.x)
+        .attr('y2', (d: ILine) => d.end.normal.y)
         ;
 
       selection
@@ -337,33 +377,33 @@ export default class Chart {
   private dragEnded() {
     if (!this.mode) {
       const [x,y] = [event.x, event.y];
-      this.dragEndPoint.x = x;
-      this.dragEndPoint.scaledX = Math.round(this.xScale.invert(x));
-      this.dragEndPoint.y = y;
-      this.dragEndPoint.scaledY = Math.round(this.yScale.invert(y));
+      this.dragEndPoint.normal.x = x;
+      this.dragEndPoint.normal.y = y;
+      this.dragEndPoint.scaled.x = Math.round(this.xScale.invert(x));
+      this.dragEndPoint.scaled.y = Math.round(this.yScale.invert(y));
 
-      const differentStartPoint = (this.dragStartPoint.x != this.dragEndPoint.x)
-        || (this.dragEndPoint.x != this.dragEndPoint.x)
-        || (this.dragStartPoint.y != this.dragStartPoint.y)
-        || (this.dragEndPoint.y != this.dragEndPoint.y)
+      const differentStartPoint = (this.dragStartPoint.normal.x !== this.dragEndPoint.normal.x)
+        || (this.dragEndPoint.normal.x !== this.dragEndPoint.normal.x)
+        || (this.dragStartPoint.normal.y !== this.dragStartPoint.normal.y)
+        || (this.dragEndPoint.normal.y !== this.dragEndPoint.normal.y)
         ;
 
       if (differentStartPoint) {
         // Start
-        this.idealLineStartPoint.x = this.dragStartPoint.x;
-        this.idealLineStartPoint.scaledX = this.dragStartPoint.scaledX;
-        this.idealLineStartPoint.y = this.dragStartPoint.y;
-        this.idealLineStartPoint.scaledY = this.dragStartPoint.scaledY;
+        this.idealLineStartPoint.normal.x = this.dragStartPoint.normal.x;
+        this.idealLineStartPoint.normal.y = this.dragStartPoint.normal.y;
+        this.idealLineStartPoint.scaled.x = this.dragStartPoint.scaled.x;
+        this.idealLineStartPoint.scaled.y = this.dragStartPoint.scaled.y;
 
         // End
-        this.idealLineEndPoint.x = this.dragEndPoint.x;
-        this.idealLineEndPoint.scaledX = this.dragEndPoint.scaledX;
-        this.idealLineEndPoint.y = this.dragEndPoint.y;
-        this.idealLineEndPoint.scaledY = this.dragEndPoint.scaledY;
+        this.idealLineEndPoint.normal.x = this.dragEndPoint.normal.x;
+        this.idealLineEndPoint.normal.y = this.dragEndPoint.normal.y;
+        this.idealLineEndPoint.scaled.x = this.dragEndPoint.scaled.x;
+        this.idealLineEndPoint.scaled.y = this.dragEndPoint.scaled.y;
 
-        const positivePoints = this.model.points
+        const partionedPoints = this.model.points
           .map((d: ICircle) => {
-            d.result = this.crossProduct(d);
+            d.result = (this.crossProduct(d) > 0);
             return d;
           });
 
@@ -376,11 +416,13 @@ export default class Chart {
           
         const customEvent = new CustomEvent("idealLineUpdated", {
           detail: {
-            x1: this.idealLineStartPoint.x,
-            y1: this.idealLineStartPoint.y,
-            x2: this.idealLineEndPoint.x,
-            y2: this.idealLineEndPoint.y,
-            points: positivePoints
+            x1: this.idealLineStartPoint.scaled.x,
+            y1: this.idealLineStartPoint.scaled.y,
+            x2: this.idealLineEndPoint.scaled.x,
+            y2: this.idealLineEndPoint.scaled.y,
+            slope: this.dragMoveData.slope,
+            offset: this.dragMoveData.offset,
+            points: partionedPoints
           }
         });
         this.containgElement.node().dispatchEvent(customEvent);
@@ -389,22 +431,14 @@ export default class Chart {
   }
 
   private crossProduct(d: ICircle) {
-    const a = {
-      x: this.idealLineStartPoint.scaledX,
-      y: this.idealLineStartPoint.scaledY
-    };
-    const b = {
-      x: this.idealLineEndPoint.scaledX,
-      y: this.idealLineEndPoint.scaledY
-    };
+    const a = this.idealLineStartPoint.scaled;
+    const b = this.idealLineEndPoint.scaled;
     const p = {
       x: d.x,
       y: d.y
     };
 
-    const crossProduct = ((b.x - a.x) * (p.y - a.y)) - ((b.y - a.y) * (p.x - a.x));
-
-    return (crossProduct > 0);
+    return ((b.x - a.x) * (p.y - a.y)) - ((b.y - a.y) * (p.x - a.x));
   }
 
   private update(model: IModel) {
@@ -423,7 +457,6 @@ export default class Chart {
         .classed('circle', true)
         ;
 
-
     circlesSelection
       .attr("cx", (d: ICircle) => this.xScale(d.x))
       .attr("cy", (d: ICircle) => this.yScale(d.y));
@@ -435,23 +468,23 @@ export default class Chart {
     // Update training lines
     const trainingLinesSelection = this.svg
       .selectAll('line.train')
-      .data(this.model.trainingLines, (d: any) => d.id);
+      .data(this.model.trainingLines);
 
       trainingLinesSelection
         .enter()
           .append('line')
-          .attr('x1', (d: ILine) => d.x1)
-          .attr('y1', (d: ILine) => d.y1)
-          .attr('x2', (d: ILine) => d.x2)
-          .attr('y2', (d: ILine) => d.y2)
+          .attr('x1', (d: ILine) => d.start.normal.x)
+          .attr('y1', (d: ILine) => d.start.normal.y)
+          .attr('x2', (d: ILine) => d.end.normal.x)
+          .attr('y2', (d: ILine) => d.end.normal.y)
           .classed('train', true)
         ;
 
       trainingLinesSelection
-        .attr('x1', (d: ILine) => d.x1)
-        .attr('y1', (d: ILine) => d.y1)
-        .attr('x2', (d: ILine) => d.x2)
-        .attr('y2', (d: ILine) => d.y2)
+        .attr('x1', (d: ILine) => d.start.normal.x)
+        .attr('y1', (d: ILine) => d.start.normal.y)
+        .attr('x2', (d: ILine) => d.end.normal.x)
+        .attr('y2', (d: ILine) => d.end.normal.y)
         ;
 
       trainingLinesSelection
@@ -468,10 +501,12 @@ export default class Chart {
 
     const customEvent = new CustomEvent("trainingLineUpdated", {
       detail: {
-        x1: line.x1,
-        y1: line.y1,
-        x2: line.x2,
-        y2: line.y2
+        x1: line.start.scaled.x,
+        y1: line.start.scaled.y,
+        x2: line.end.scaled.x,
+        y2: line.end.scaled.y,
+        slope,
+        offset
       }
     });
 
@@ -498,10 +533,26 @@ export default class Chart {
     }
 
     return {
-      x1: minX,
-      y1: minY,
-      x2: maxX,
-      y2: maxY,
+      start: {
+        normal: {
+          x: minX,
+          y: minY
+        },
+        scaled: {
+          x: this.xScale.invert(minX),
+          y: this.yScale.invert(minY)  
+        }
+      },
+      end: {
+        normal: {
+          x: maxX,
+          y: maxY
+        },
+        scaled: {
+          x: this.xScale.invert(maxX),
+          y: this.yScale.invert(maxY)
+        }
+      },
       userDefined: false
     };
   }
