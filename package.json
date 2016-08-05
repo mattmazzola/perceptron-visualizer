@@ -1,6 +1,6 @@
 {
   "name": "@mattmazzola/perceptron-visualizer",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Visualizer for Perceptron written using D3v4",
   "main": "dist/perceptron-visualizer.js",
   "scripts": {
