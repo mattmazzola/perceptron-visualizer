@@ -40,15 +40,27 @@ body {
 }
 
 line.train {
+  stroke-width: 1;
+}
+
+line.train {
   stroke: purple;
+}
+line.train:last-child {
+  stroke-width: 2;
+}
+line.train:not(:last-child) {
+  opacity: 0.7;
 }
 
 line.division {
   stroke: purple;
+  stroke-width: 2;
 }
 line.division--full {
   stroke: orange;
 }
 line.division--user-defined {
   stroke: red;
+  stroke-width: 3;
 }

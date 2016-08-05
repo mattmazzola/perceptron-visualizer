@@ -1,5 +1,5 @@
 {
-  "name": "perceptron-visualizer",
+  "name": "@mattmazzola/perceptron-visualizer",
   "version": "0.2.0",
   "description": "Visualizer for Perceptron",
   "main": "index.js",

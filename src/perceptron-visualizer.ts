@@ -28,8 +28,6 @@ export interface ILine {
   y1: number;
   x2: number;
   y2: number;
-  stroke: string;
-  strokeWidth: number;
   userDefined: boolean;
 }
 
@@ -40,7 +38,13 @@ export interface ICircle {
   result: boolean;
 }
 
-export class Chart {
+export interface IModel {
+  points: ICircle[];
+  idealLine: ILine;
+  trainingLines: ILine[];
+}
+
+export default class Chart {
   // Defaults
   width: number = 400;
   height: number = 400;
@@ -52,7 +56,11 @@ export class Chart {
   xScale: any; //Function;
   yScale: any; //Function;
 
-  circles: ICircle[] = [];
+  model: IModel = {
+    points: [],
+    idealLine: null,
+    trainingLines: []
+  };
   containgElement: any;
   idealLineStartPoint: any = {
     x: 0,
@@ -89,7 +97,7 @@ export class Chart {
 
   mode: boolean = true;
 
-  constructor(selector: string, domain: [number, number], data: any[]) {
+  constructor(selector: string, domain: [number, number]) {
     this.containgElement = select(selector);
 
     // Inject svg
@@ -170,8 +178,10 @@ export class Chart {
   }
 
   reset() {
-    this.circles.length = 0;
-    this.update();
+    // Reset points, ideal line, and training lines
+    this.model.points.length = 0;
+    this.model.trainingLines.length = 0;
+    this.update(this.model);
 
     this.svg
       .selectAll('line.train')
@@ -207,8 +217,8 @@ export class Chart {
       result: null
     };
 
-    this.circles.push(newCircle);
-    this.update();
+    this.model.points.push(newCircle);
+    this.update(this.model);
 
     const customEvent = new CustomEvent("pointAdded", {
       detail: {
@@ -286,7 +296,6 @@ export class Chart {
             y1: minY,
             x2: maxX,
             y2: maxY,
-            strokeWidth: 2,
             userDefined: false
           },
           {
@@ -295,7 +304,6 @@ export class Chart {
             y1: this.dragStartPoint.y,
             x2: dragMovePoint.x,
             y2: dragMovePoint.y,
-            strokeWidth: 3,
             userDefined: true
           },
         ], (d: any) => d.id);
@@ -307,7 +315,6 @@ export class Chart {
           .attr('y1', (d: ILine) => d.y1)
           .attr('x2', (d: ILine) => d.x2)
           .attr('y2', (d: ILine) => d.y2)
-          .attr('stroke-width', (d: ILine) => d.strokeWidth)
           .classed('division', true)
           .classed('division--full', (d: ILine) => d.userDefined === false)
           .classed('division--user-defined', (d: ILine) => d.userDefined === true)
@@ -354,7 +361,7 @@ export class Chart {
         this.idealLineEndPoint.y = this.dragEndPoint.y;
         this.idealLineEndPoint.scaledY = this.dragEndPoint.scaledY;
 
-        const positivePoints = this.circles
+        const positivePoints = this.model.points
           .map((d: ICircle) => {
             d.result = this.crossProduct(d);
             return d;
@@ -362,7 +369,7 @@ export class Chart {
 
         const selection = this.svg
           .selectAll('circle')
-          .data(this.circles)
+          .data(this.model.points)
           .classed('circle--positive', (d: ICircle) => d.result === true)
           .classed('circle--negative', (d: ICircle) => d.result === false)
           ;
@@ -400,12 +407,14 @@ export class Chart {
     return (crossProduct > 0);
   }
 
-  private update() {
-    const selection = this.svg
-      .selectAll('circle')
-      .data(this.circles);
+  private update(model: IModel) {
 
-    selection
+    // Update Points
+    const circlesSelection = this.svg
+      .selectAll('circle')
+      .data(this.model.points);
+
+    circlesSelection
       .enter()
         .append("circle")
         .attr("cx", (d: ICircle) => this.xScale(d.x))
@@ -415,16 +424,61 @@ export class Chart {
         ;
 
 
-    selection
+    circlesSelection
       .attr("cx", (d: ICircle) => this.xScale(d.x))
       .attr("cy", (d: ICircle) => this.yScale(d.y));
 
-    selection
+    circlesSelection
       .exit()
         .remove('circle');
+
+    // Update training lines
+    const trainingLinesSelection = this.svg
+      .selectAll('line.train')
+      .data(this.model.trainingLines, (d: any) => d.id);
+
+      trainingLinesSelection
+        .enter()
+          .append('line')
+          .attr('x1', (d: ILine) => d.x1)
+          .attr('y1', (d: ILine) => d.y1)
+          .attr('x2', (d: ILine) => d.x2)
+          .attr('y2', (d: ILine) => d.y2)
+          .classed('train', true)
+        ;
+
+      trainingLinesSelection
+        .attr('x1', (d: ILine) => d.x1)
+        .attr('y1', (d: ILine) => d.y1)
+        .attr('x2', (d: ILine) => d.x2)
+        .attr('y2', (d: ILine) => d.y2)
+        ;
+
+      trainingLinesSelection
+        .exit()
+          .remove('line')
+          ;
   }
 
-  public updateTrainingLine(slope: number, offset: number) {
+  public addTrainingLine(slope: number, offset: number) {
+    const line = this.convertSlopeOffsetToCoordinates(slope, offset);
+    this.model.trainingLines.push(line);
+
+    this.update(this.model);
+
+    const customEvent = new CustomEvent("trainingLineUpdated", {
+      detail: {
+        x1: line.x1,
+        y1: line.y1,
+        x2: line.x2,
+        y2: line.y2
+      }
+    });
+
+    this.containgElement.node().dispatchEvent(customEvent);
+  }
+
+  private convertSlopeOffsetToCoordinates(slope: number, offset: number): ILine {
     const minScaledX = this.xScale.invert(0);
     const maxScaledX = this.xScale.invert(400);
     let minX: number = this.xScale(minScaledX);
@@ -443,51 +497,12 @@ export class Chart {
       maxY = this.yScale(slope * maxScaledX + offset);
     }
 
-    const selection = this.svg
-      .selectAll('line.train')
-      .data([
-        {
-          id: 123,
-          x1: minX,
-          y1: minY,
-          x2: maxX,
-          y2: maxY,
-          strokeWidth: 2
-        }
-      ], (d: any) => d.id);
-
-      selection
-        .enter()
-          .append('line')
-          .attr('x1', (d: ILine) => d.x1)
-          .attr('y1', (d: ILine) => d.y1)
-          .attr('x2', (d: ILine) => d.x2)
-          .attr('y2', (d: ILine) => d.y2)
-          .attr('stroke-width', (d: ILine) => d.strokeWidth)
-          .classed('train', true)
-        ;
-
-      selection
-        .attr('x1', (d: ILine) => d.x1)
-        .attr('y1', (d: ILine) => d.y1)
-        .attr('x2', (d: ILine) => d.x2)
-        .attr('y2', (d: ILine) => d.y2)
-        ;
-
-      selection
-        .exit()
-          .remove('line')
-          ;
-
-      const customEvent = new CustomEvent("trainingLineUpdated", {
-        detail: {
-          x1: minX,
-          y1: minY,
-          x2: maxX,
-          y2: maxY
-        }
-      });
-
-      this.containgElement.node().dispatchEvent(customEvent);
+    return {
+      x1: minX,
+      y1: minY,
+      x2: maxX,
+      y2: maxY,
+      userDefined: false
+    };
   }
 }
