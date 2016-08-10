@@ -554,24 +554,12 @@ export default class Chart {
           ;
   }
 
-  public addTrainingLine(slope: number, offset: number) {
-    const line = this.convertSlopeOffsetToCoordinates(slope, offset);
-    this.model.trainingLines.push(line);
+  public setTrainingLines(trainingLines: ILineEquation[]) {
+    const lines = trainingLines
+      .map(line => this.convertSlopeOffsetToCoordinates(line.slope, line.offset));
 
+    this.model.trainingLines = lines;
     this.update(this.model);
-
-    const customEvent = new CustomEvent("trainingLineUpdated", {
-      detail: {
-        x1: line.start.scaled.x,
-        y1: line.start.scaled.y,
-        x2: line.end.scaled.x,
-        y2: line.end.scaled.y,
-        slope,
-        offset
-      }
-    });
-
-    this.containgElement.node().dispatchEvent(customEvent);
   }
 
   private convertSlopeOffsetToCoordinates(slope: number, offset: number): ILine {

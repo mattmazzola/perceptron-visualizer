@@ -554,24 +554,12 @@ export default class Chart {
           ;
   }
 
-  public addTrainingLine(slope: number, offset: number) {
-    const line = this.convertSlopeOffsetToCoordinates(slope, offset);
-    this.model.trainingLines.push(line);
+  public setTrainingLines(trainingLines: ILineEquation[]) {
+    const lines = trainingLines
+      .map(line => this.convertSlopeOffsetToCoordinates(line.slope, line.offset));
 
+    this.model.trainingLines = lines;
     this.update(this.model);
-
-    const customEvent = new CustomEvent("trainingLineUpdated", {
-      detail: {
-        x1: line.start.scaled.x,
-        y1: line.start.scaled.y,
-        x2: line.end.scaled.x,
-        y2: line.end.scaled.y,
-        slope,
-        offset
-      }
-    });
-
-    this.containgElement.node().dispatchEvent(customEvent);
   }
 
   private convertSlopeOffsetToCoordinates(slope: number, offset: number): ILine {
@@ -622,6 +610,8 @@ export default class Chart {
 
 const vis = new Chart('.visual-container', [-50,50]);
 
+const trainingLines: ILineEquation[] = [];
+
 $('#reset')
   .on('click', () => {
     vis.reset();
@@ -636,9 +626,22 @@ $("#mode")
 
 $("#train")
   .on('click', () => {
-    const slope = (Math.round(10 * Math.random()) - 5)/2;
-    const offset = Math.round(40 * Math.random()) - 20;
-    vis.addTrainingLine(slope, offset);
+
+    const maxLines = Math.round(50 * Math.random()) + 20;
+    const trainingLines: ILineEquation[] = [];
+
+    for (let i = 0; i < maxLines; i++) {
+      const slope = (Math.round(10 * Math.random()) - 5)/2;
+      const offset = Math.round(40 * Math.random()) - 20;
+      const line: ILineEquation = {
+        slope,
+        offset
+      };
+
+      trainingLines.push(line);
+    }
+
+    vis.setTrainingLines(trainingLines);
   });
 
 $('#brush')
