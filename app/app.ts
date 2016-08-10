@@ -22,6 +22,14 @@ import {
   drag
 } from "d3-drag";
 
+import {
+  brushX
+} from "d3-brush";
+
+export interface IEntity {
+  id: (...args: any[]) => string;
+}
+
 export interface IPoint {
   x: number;
   y: number;
@@ -38,6 +46,11 @@ export interface ILine {
   userDefined: boolean;
 }
 
+export interface ILineEquation {
+  slope: number;
+  offset: number;
+}
+
 export interface ICircle extends IPoint {
   r: number;
   result: boolean;
@@ -52,18 +65,27 @@ export interface IModel {
 export default class Chart {
   // Defaults
   width: number = 400;
-  height: number = 400;
+  height: number = 500;
+  brushHeight: number = 100;
   paddingTop: number = 30;
   paddingRight: number = 30;
-  paddingBottom: number = 30;
+  paddingBottom: number = 130;
   paddingLeft: number = 30;
 
   xScale: any; //Function;
   yScale: any; //Function;
+  xAxisBrush: any;
+  xAxisBrushGroup: any;
+
+  brushPercentages: [number, number];
 
   model: IModel = {
     points: [],
-    idealLine: null,
+    idealLine: {
+      start: null,
+      end: null,
+      userDefined: true  
+    },
     trainingLines: []
   };
   containgElement: any;
@@ -112,12 +134,8 @@ export default class Chart {
     }
   };
   dragBehavior: any;
-  trainingLine: any = {
-    slope: -1,
-    offset: 0
-  };
   svg: any;
-
+  brushSvg: any;
   mode: boolean = true;
 
   constructor(selector: string, domain: [number, number]) {
@@ -127,7 +145,13 @@ export default class Chart {
     this.svg = this.containgElement
       .append("svg")
       .attr("width", '100%')
-      .attr("height", '100%');
+      .attr("height", `${this.height - this.brushHeight}px`);
+
+    this.brushSvg = this.containgElement
+      .append("svg")
+      .attr("width", '100%')
+      .attr("height", `${this.brushHeight}px`)
+      ;
 
     // Create scales mapping domain coordinates to svg coordinates
     this.xScale = scaleLinear()
@@ -142,16 +166,18 @@ export default class Chart {
     const xAxis = axisBottom(this.xScale);
     const xAxisGrid = axisBottom(this.xScale)
       .tickSize([this.width])
+      .tickPadding(1000)
       ;
     const yAxis = axisLeft(this.yScale);
     const yAxisGrid = axisLeft(this.yScale)
       .tickSize([this.width])
+      .tickPadding(1000)
       ;
 
     // Draw Axises
     const xAxisGroup = this.svg
       .append('g')
-      .attr('transform', `translate(0, ${(this.height)/2})`)
+      .attr('transform', `translate(0, ${(this.height - this.brushHeight)/2})`)
       .classed('axis', true)
       .classed('axis--x', true)
       .classed('noselect', true)
@@ -180,6 +206,21 @@ export default class Chart {
       .classed('grid--y', true)
       .classed('noselect', true)
       .call(yAxisGrid);
+
+    // Draw brush
+    this.xAxisBrush = brushX()
+      .extent([[0,0], [this.width-20,80]])
+      .on("brush", () => this.brushed())
+      ;
+
+    this.xAxisBrushGroup = this.brushSvg
+      .append('g')
+      .attr('transform', `translate(10, 10)`)
+      .classed('brush', true);
+      ;
+
+    this.xAxisBrushGroup
+      .call(this.xAxisBrush);
 
     // Register Events
     this.svg.on('click', (() => {
@@ -215,15 +256,17 @@ export default class Chart {
       .remove('line')
   }
 
-  toggleMode() {
-    this.mode = !this.mode;
+  setMode(mode: boolean) {
+    if (this.mode !== mode) {
+      this.mode = mode;
 
-    if (!this.mode) {
-      this.svg
-        .call(this.dragBehavior);
-    }
-    else {
-      this.svg.on('.drag', null);
+      if (!this.mode) {
+        this.svg
+          .call(this.dragBehavior);
+      }
+      else {
+        this.svg.on('.drag', null);
+      }
     }
   }
 
@@ -251,6 +294,15 @@ export default class Chart {
     });
 
     this.containgElement.node().dispatchEvent(customEvent);
+  }
+
+  private brushed() {
+    const maxSize = this.width - 20;
+    this.brushPercentages = <[number, number]>(<number[]>event.selection)
+      .map(x => x / maxSize);
+
+    console.log('brushed', event.selection, this.brushPercentages);
+    this.update(this.model);
   }
 
   private dragStarted() {
@@ -401,18 +453,17 @@ export default class Chart {
         this.idealLineEndPoint.scaled.x = this.dragEndPoint.scaled.x;
         this.idealLineEndPoint.scaled.y = this.dragEndPoint.scaled.y;
 
+        this.model.idealLine = {
+          start: this.idealLineStartPoint,
+          end: this.idealLineEndPoint,
+          userDefined: true
+        };
+
         const partionedPoints = this.model.points
           .map((d: ICircle) => {
-            d.result = (this.crossProduct(d) > 0);
+            d.result = (this.crossProduct(this.idealLineStartPoint.scaled, this.idealLineEndPoint.scaled, d) > 0);
             return d;
           });
-
-        const selection = this.svg
-          .selectAll('circle')
-          .data(this.model.points)
-          .classed('circle--positive', (d: ICircle) => d.result === true)
-          .classed('circle--negative', (d: ICircle) => d.result === false)
-          ;
           
         const customEvent = new CustomEvent("idealLineUpdated", {
           detail: {
@@ -430,19 +481,15 @@ export default class Chart {
     }
   }
 
-  private crossProduct(d: ICircle) {
-    const a = this.idealLineStartPoint.scaled;
-    const b = this.idealLineEndPoint.scaled;
-    const p = {
-      x: d.x,
-      y: d.y
-    };
+  moveBrush(brushBoundaries: number[]) {
+    this.xAxisBrush.move(this.xAxisBrushGroup, brushBoundaries);
+  }
 
+  private crossProduct(a: IPoint, b: IPoint, p: IPoint) {
     return ((b.x - a.x) * (p.y - a.y)) - ((b.y - a.y) * (p.x - a.x));
   }
 
   private update(model: IModel) {
-
     // Update Points
     const circlesSelection = this.svg
       .selectAll('circle')
@@ -455,24 +502,39 @@ export default class Chart {
         .attr("cy", (d: ICircle) => this.yScale(d.y))
         .attr("r", (d: ICircle) => d.r)
         .classed('circle', true)
+        .classed('circle--positive', (d: ICircle) => d.result === true)
+        .classed('circle--negative', (d: ICircle) => d.result === false)
         ;
 
     circlesSelection
       .attr("cx", (d: ICircle) => this.xScale(d.x))
-      .attr("cy", (d: ICircle) => this.yScale(d.y));
+      .attr("cy", (d: ICircle) => this.yScale(d.y))
+      .classed('circle--positive', (d: ICircle) => d.result === true)
+      .classed('circle--negative', (d: ICircle) => d.result === false)
+      ;
 
     circlesSelection
       .exit()
-        .remove('circle');
+        .remove('circle')
+        ;
 
     // Update training lines
     const trainingLinesSelection = this.svg
       .selectAll('line.train')
-      .data(this.model.trainingLines);
+      .data(this.model.trainingLines)
+      ;
 
       trainingLinesSelection
         .enter()
           .append('line')
+          .filter((d: ILine, i: number) => {
+            const linePercentage = (i / this.model.trainingLines.length);
+
+            return !this.brushPercentages || (
+                linePercentage > this.brushPercentages[0]
+                && linePercentage < this.brushPercentages[1]
+            );
+          })
           .attr('x1', (d: ILine) => d.start.normal.x)
           .attr('y1', (d: ILine) => d.start.normal.y)
           .attr('x2', (d: ILine) => d.end.normal.x)
@@ -481,6 +543,14 @@ export default class Chart {
         ;
 
       trainingLinesSelection
+        .filter((d: ILine, i: number) => {
+          const linePercentage = (i / this.model.trainingLines.length);
+
+          return !this.brushPercentages || (
+              linePercentage > this.brushPercentages[0]
+              && linePercentage < this.brushPercentages[1]
+          );
+        })
         .attr('x1', (d: ILine) => d.start.normal.x)
         .attr('y1', (d: ILine) => d.start.normal.y)
         .attr('x2', (d: ILine) => d.end.normal.x)
@@ -489,6 +559,14 @@ export default class Chart {
 
       trainingLinesSelection
         .exit()
+          .filter((d: ILine, i: number) => {
+            const linePercentage = (i / this.model.trainingLines.length);
+
+            return !this.brushPercentages || (
+                linePercentage > this.brushPercentages[0]
+                && linePercentage < this.brushPercentages[1]
+            );
+          })
           .remove('line')
           ;
   }
@@ -515,7 +593,7 @@ export default class Chart {
 
   private convertSlopeOffsetToCoordinates(slope: number, offset: number): ILine {
     const minScaledX = this.xScale.invert(0);
-    const maxScaledX = this.xScale.invert(400);
+    const maxScaledX = this.xScale.invert(this.width);
     let minX: number = this.xScale(minScaledX);
     let minY: number;
     let maxX: number = this.xScale(maxScaledX);
@@ -524,8 +602,8 @@ export default class Chart {
     if(slope === Infinity) {
       minY = 0;
       minX = 0,
-      maxY = 400;
-      maxX = 400;
+      maxY = this.height - this.brushHeight;
+      maxX = this.width;
     }
     else {
       minY = this.yScale(slope * minScaledX + offset);
@@ -566,9 +644,11 @@ $('#reset')
     vis.reset();
   });
 
+let mode = true;
 $("#mode")
   .on('click', () => {
-    vis.toggleMode();
+    mode = !mode;
+    vis.setMode(mode);
   });
 
 $("#train")
@@ -576,6 +656,13 @@ $("#train")
     const slope = (Math.round(10 * Math.random()) - 5)/2;
     const offset = Math.round(40 * Math.random()) - 20;
     vis.addTrainingLine(slope, offset);
+  });
+
+$('#brush')
+  .on('click', () => {
+    const randomLeft = Math.round(200 * Math.random());
+    const randomRight = Math.round(150 * Math.random()) + 210;
+    vis.moveBrush([randomLeft, randomRight]);
   });
 
 const element = document.querySelector('.visual-container');

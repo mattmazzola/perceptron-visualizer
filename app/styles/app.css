@@ -8,7 +8,7 @@ body {
 .visual-container,
 .visual-container2 {
   border: 1px solid #444;
-  height: 400px;
+  height: 500px;
   width: 400px;
 }
 
@@ -64,3 +64,41 @@ line.division--user-defined {
   stroke: red;
   stroke-width: 3;
 }
+
+svg {
+  display: block;
+}
+
+.brush .overlay {
+  stroke: #444;
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.brush .handle.handle--e {
+    width: 6px;
+    fill: white;
+    height: 81px;
+    y: 0;
+}
+.brush .handle.handle--w {
+    width: 6px;
+    fill: white;
+    height: 81px;
+    y: 0;
+}
+
+/*
+.axis--grid .domain {
+  fill: #ddd;
+  stroke: none;
+}
+
+.axis--x .domain,
+.axis--grid .tick line {
+  stroke: #fff;
+}
+
+.axis--grid .tick--minor line {
+  stroke-opacity: .5;
+}*/
