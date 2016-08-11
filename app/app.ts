@@ -521,20 +521,19 @@ export default class Chart {
     // Update training lines
     const trainingLinesSelection = this.svg
       .selectAll('line.train')
-      .data(this.model.trainingLines)
+      .data(this.model.trainingLines.filter((d: ILine, i: number) => {
+        const linePercentage = (i / this.model.trainingLines.length);
+
+        return !this.brushPercentages || (
+            linePercentage > this.brushPercentages[0]
+            && linePercentage < this.brushPercentages[1]
+        );
+      }), (d: ILine) => `[(${d.start.normal.x}, ${d.start.normal.y}),(${d.end.normal.x}, ${d.end.normal.y})]`)
       ;
 
       trainingLinesSelection
         .enter()
           .append('line')
-          .filter((d: ILine, i: number) => {
-            const linePercentage = (i / this.model.trainingLines.length);
-
-            return !this.brushPercentages || (
-                linePercentage > this.brushPercentages[0]
-                && linePercentage < this.brushPercentages[1]
-            );
-          })
           .attr('x1', (d: ILine) => d.start.normal.x)
           .attr('y1', (d: ILine) => d.start.normal.y)
           .attr('x2', (d: ILine) => d.end.normal.x)
@@ -543,14 +542,6 @@ export default class Chart {
         ;
 
       trainingLinesSelection
-        .filter((d: ILine, i: number) => {
-          const linePercentage = (i / this.model.trainingLines.length);
-
-          return !this.brushPercentages || (
-              linePercentage > this.brushPercentages[0]
-              && linePercentage < this.brushPercentages[1]
-          );
-        })
         .attr('x1', (d: ILine) => d.start.normal.x)
         .attr('y1', (d: ILine) => d.start.normal.y)
         .attr('x2', (d: ILine) => d.end.normal.x)
@@ -559,14 +550,6 @@ export default class Chart {
 
       trainingLinesSelection
         .exit()
-          .filter((d: ILine, i: number) => {
-            const linePercentage = (i / this.model.trainingLines.length);
-
-            return !this.brushPercentages || (
-                linePercentage > this.brushPercentages[0]
-                && linePercentage < this.brushPercentages[1]
-            );
-          })
           .remove('line')
           ;
   }
