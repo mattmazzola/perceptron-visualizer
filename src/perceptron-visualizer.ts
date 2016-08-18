@@ -272,8 +272,8 @@ export default class Chart {
 
   private addPoint(x: number, y: number) {
     const scaledCoordinates: IPoint = {
-      x: Math.round(this.xScale.invert(x)),
-      y: Math.round(this.yScale.invert(y))
+      x: this.xScale.invert(x),
+      y: this.yScale.invert(y)
     };
 
     const newCircle: ICircle = {
@@ -310,8 +310,8 @@ export default class Chart {
       const [x,y] = [event.x, event.y];
       this.dragStartPoint.normal.x = x;
       this.dragStartPoint.normal.y = y;
-      this.dragStartPoint.scaled.x = Math.round(this.xScale.invert(x));
-      this.dragStartPoint.scaled.y = Math.round(this.yScale.invert(y));
+      this.dragStartPoint.scaled.x = this.xScale.invert(x);
+      this.dragStartPoint.scaled.y = this.yScale.invert(y);
     }
   }
 
@@ -324,8 +324,8 @@ export default class Chart {
           y
         },
         scaled: {
-          x: Math.round(this.xScale.invert(x)),
-          y: Math.round(this.yScale.invert(y))
+          x: this.xScale.invert(x),
+          y: this.yScale.invert(y)
         }
       };
 
@@ -431,8 +431,8 @@ export default class Chart {
       const [x,y] = [event.x, event.y];
       this.dragEndPoint.normal.x = x;
       this.dragEndPoint.normal.y = y;
-      this.dragEndPoint.scaled.x = Math.round(this.xScale.invert(x));
-      this.dragEndPoint.scaled.y = Math.round(this.yScale.invert(y));
+      this.dragEndPoint.scaled.x = this.xScale.invert(x);
+      this.dragEndPoint.scaled.y = this.yScale.invert(y);
 
       const differentStartPoint = (this.dragStartPoint.normal.x !== this.dragEndPoint.normal.x)
         || (this.dragEndPoint.normal.x !== this.dragEndPoint.normal.x)
